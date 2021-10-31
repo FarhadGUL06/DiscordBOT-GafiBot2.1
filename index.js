@@ -1,8 +1,9 @@
 const Discord = require('discord.js');
 const ytdl = require('ytdl-core');
 const yts = require("yt-search");
-const client = new Discord.Client();
+const client = new Discord.Client({partials: ["MESSAGE", "CHANNEL", "REACTION"]});
 const youtube = require('youtube-sr').default;
+const fs = require("fs");
 const { getData, getPreview, getTracks } = require('spotify-url-info');
 
 const {
@@ -70,7 +71,7 @@ client.on('message', async message => {
             return;
         } else if (message.content.startsWith(`${prefix}seek`)) {
             //message.channel.send("Nimeni nu te poate ajuta");
-            //seek(message,serverQueue);
+            seek(message,serverQueue);
             return;
 	   } else if (message.content.startsWith(`${prefix}queue`) || message.content.startsWith(`${prefix}coada`)) {
             print_queue(message, serverQueue);
@@ -87,25 +88,28 @@ client.on('message', async message => {
         } else if (message.content.startsWith(`${prefix}serverinfo`)) {
             serverinfo(message);
             return;
-	} else if (message.content.startsWith(`${prefix}sterge`) || message.content.startsWith(`${prefix}d`)) {
-            stergere(message);
+        } else if (message.content.startsWith(`${prefix}intrebari`)) {
+            message.channel.send("Intrebari comentariiiiii");
+            return;
+        } else if (message.content.startsWith(`${prefix}record`) || message.content.startsWith(`${prefix}inregistreaza`)) {
+            record (message);
+            return;
+        } else if (message.content.startsWith(`${prefix}reactionrole`) || message.content.startsWith(`${prefix}reactie`)) {
+            reactionrole (message,client);
+            return;
+        } else if (message.content.startsWith(`${prefix}recdone`) || message.content.startsWith(`${prefix}reda`)) {
+            reda (message);
             return;
 	} else if (message.content.startsWith(`${prefix}zicala`)) {
-            const zicale = [" da", "Nu dai putere oricui prost", "Important e sa si dai cand furi", "Sanatate ca noroc aveau si aia pe titanic","Asculta totul dar sa nu crezi totul","Cine se acuza se scuza","Cine nu spune nimic, nu gandeste mai putin","Esti ceea ce mananci","Prostul rade de trei ori: o data cand rad ceilalti, o data cand intelege gluma si inca o data cand isi da seama ca a ras fara sa inteleaga","Ciupercile otravitoare cresc cel mai repede","Woher comzdu?","Fii fericit cat traiesti, pentru ca mort o sa fii mult timp"];
+            const zicale = ["Nu dai putere oricui prost", "Important e sa si dai cand furi", "Sanatate ca noroc aveau si aia pe titanic","Asculta totul dar sa nu crezi totul","Cine se acuza se scuza","Cine nu spune nimic, nu gandeste mai putin","Esti ceea ce mananci","Prostul rade de trei ori: o data cand rad ceilalti, o data cand intelege gluma si inca o data cand isi da seama ca a ras fara sa inteleaga","Ciupercile otravitoare cresc cel mai repede","Woher comzdu?","Fii fericit cat traiesti, pentru ca mort o sa fii mult timp"];
 
             const rndInt = Math.floor(Math.random() * 12) + 1;
-            let mesaj = zicale[rndInt];
-	    if (!mesaj){
-	      message.channel.send(zicale[1]);
-	    }
-            else {
-              message.channel.send(mesaj);
-	    }
+            message.channel.send(zicale[rndInt]);
             return;
-        } else if (message.content.startsWith(`${prefix}stop`) || message.content.startsWith(`${prefix}opreste`) || message.content.startsWith(`${prefix}clear`)) {
+        } else if (message.content.startsWith(`${prefix}stop`) || message.content.startsWith(`${prefix}opreste`)) {
             //message.channel.send("Stop");
             stop(message, serverQueue);
-            return;
+        return;
         }
 	message.channel.send("Comanda nu este implementata!");
         return;
@@ -397,6 +401,63 @@ function seek(message, serverQueue) {
 
 }
 
+async function reactionrole (message, client){
+    const channel = '904335672440139786';
+    const role1 = message.guild.roles.cache.find (role => role.name === "Pro-Lsac");
+    const role2 = message.guild.roles.cache.find(role=> role.name === "Anti-Lsac");
+    const emoji1 = '☑'
+    const emoji2 = '❌';
+    let embed = new Discord.MessageEmbed()
+        .setColor('#056bdb')
+        .setTitle('Cum va situati din acest punct de vedere?')
+        .setDescription('Pro-Lsac / Anti - Lsac\n\n'
+            + `${emoji1} pentru Pro-Lsac\n`
+            + `${emoji2} pentru Anti-Lsac`);
+
+    let messageEmbed = await message.channel.send(embed);
+    messageEmbed.react(emoji1);
+    messageEmbed.react(emoji2);
+
+    client.on('messageReactionAdd', async (reaction, user) => {
+        if (reaction.message.partial) await reaction.message.fetch();
+        if (reaction.partial) await reaction.fetch();
+        if (user.bot) return;
+        if (!reaction.message.guild) return;
+
+        if (reaction.message.channel.id == channel) {
+            if (reaction.emoji.name === emoji1) {
+                await reaction.message.guild.members.cache.get(user.id).roles.add(role1);
+            }
+            if (reaction.emoji.name === emoji2) {
+                await reaction.message.guild.members.cache.get(user.id).roles.add(role2);
+            }
+        } else {
+            return;
+        }
+
+    });
+
+    client.on('messageReactionRemove', async (reaction, user) => {
+
+        if (reaction.message.partial) await reaction.message.fetch();
+        if (reaction.partial) await reaction.fetch();
+        if (user.bot) return;
+        if (!reaction.message.guild) return;
+
+
+        if (reaction.message.channel.id == channel) {
+            if (reaction.emoji.name === emoji1) {
+                await reaction.message.guild.members.cache.get(user.id).roles.remove(role1);
+            }
+            if (reaction.emoji.name === emoji2) {
+                await reaction.message.guild.members.cache.get(user.id).roles.remove(role2);
+            }
+        } else {
+            return;
+        }
+    });
+}
+
 function print_queue(message, serverQueue) {
     if (!message.member.voice.channel)
         return message.channel.send("Trebuie sa fii conectat pe voice channel.");
@@ -409,6 +470,40 @@ function print_queue(message, serverQueue) {
         i++;
    }
 
+}
+
+async function record (message) {
+    const channel = message.member.voice.channel;
+    if(!channel) return message.channel.send('Nu esti pe un canal de voice.');
+    const connection = await channel.join();
+    const receiver = connection.receiver.createStream(message.member, {
+        mode: "pcm",
+        end: "silence"
+    });
+    const writer = receiver.pipe(fs.createWriteStream(`./recorded-${message.author.id}.pcm`));
+    writer.on("finish", () => {
+        message.member.voice.channel.leave();
+        message.channel.send("Am terminat de inregistrat");
+    });
+}
+
+async function reda (message){
+    const voicechannel = message.member.voice.channel;
+    if (!voicechannel) return message.channel.send("Nu esti pe un canal de voice.");
+
+    if (!fs.existsSync(`./recorded-${message.author.id}.pcm`)) return message.channel.send("Nu a putut fi inregistrat.");
+
+    const connection = await message.member.voice.channel.join();
+    const stream = fs.createReadStream(`./recorded-${message.author.id}.pcm`);
+
+    const dispatcher = connection.play(stream, {
+        type: "converted"
+    });
+
+    dispatcher.on("finish", () => {
+        message.member.voice.channel.leave();
+        return message.channel.send("S-a terminat inregistrarea.");
+    })
 }
 
 function sef (message) {
@@ -427,22 +522,6 @@ function sef (message) {
             return message.channel.send ("GAFI");
         }
     }
-}
-
-function stergere (message) {
-    const args = message.content.split(" ");
-    var nr_mesaje = 1;
-    if (args[1]) {
-	nr_mesaje = args[1];
-    }
-    if (nr_mesaje > 10) {
-    	nr_mesaje = 10;
-    }
-    nr_mesaje++;
-    message.channel.bulkDelete(nr_mesaje);
-    nr_mesaje--;
-    console.log("Am sters "+ nr_mesaje + " mesaje.");
-    return;
 }
 
 function av (message) {
@@ -551,13 +630,13 @@ function help (message){
         if (args[1].includes("muzica")){
             message.channel.send("HELP PE MUZICA");
             message.channel.send(
-                "!play sau !p sau !canta + link video / link playlist / cuvinte cheie - poti pune muzica folosind link-ul la video, la playlist sau cuvinte cheie\n!stop - opreste muzica si curata coada\n!skip sau !sari - sare peste piesa curenta\n!loop sau !repeta - pune piesa curenta in loop / sau scoate din loop\n!loop queue sau !repeta coada - pune coada de piese pe repeat\n!pause sau !pauza - pune muzica pe pauza\n!resume sau !reia - porneste iar muzica\n!search sau !cauta - cauta piese folosind cuvinte cheie\n!queue sau !coada - afiseaza lista de melodii\n");
+                "!play sau !p sau !canta + LINK VIDEO / cuvinte cheie - poti pune muzica folosind link-ul la video sau cuvinte cheie (functia de playlist este in lucru)\n!stop - opreste muzica si curata coada\n!skip sau !sari - sare peste piesa curenta\n!loop sau !repeta - pune piesa curenta in loop / sau scoate din loop\n!loop queue sau !repeta coada - pune coada de piese pe repeat\n!pause sau !pauza - pune muzica pe pauza\n!resume sau !reia - porneste iar muzica\n!search sau !cauta - cauta piese folosind cuvinte cheie\n!queue sau !coada - afiseaza lista de melodii\n");
             return;
         }
         if (args[1].includes("comenzi")){
             message.channel.send("HELP COMENZI");
             message.channel.send(
-                "!serverinfo - afiseaza informatii despre server\n!userinfo - afiseaza informatii despre tine\n!userinfo + mention_user - afiseaza informatii despre mention_user\n!av - afiseaza avatarul tau\n!av + mention_user - afiseaza avatarul celui mentionat\n!d sau !sterge + nr_mesaje - sterge numarul de mesaje indicat din channel (intre 1 si 10, de baza fiind 1)\n!zicala - spune o vorba celebra la intamplare\n");
+                "!serverinfo - afiseaza informatii despre server\n!userinfo - afiseaza informatii despre tine\n!userinfo + mention_user - afiseaza informatii despre mention_user\n!av - afiseaza avatarul tau\n!av + mention_user - afiseaza avatarul celui mentionat.\n");
 
             return;
         }
